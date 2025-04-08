@@ -11,24 +11,70 @@ public class ConcurrentBoidsSimulator {
     private BoidsModel model;
     private Optional<BoidsView> view;
     private List<Worker> workers;
-    private static final int FRAMERATE = 120;
+    private static final int FRAMERATE = 25;
     private int framerate;
+
     private int nCores = Runtime.getRuntime().availableProcessors() ;
-//    private int nCores;
+
     private SynchWorkers positionBarrier;
     private SynchWorkersView viewBarrier;
+    private Semaphore start;
+
+    private int nBoids;
+
+    private boolean isRunning;
+    private boolean isStopped;
 
     public ConcurrentBoidsSimulator(BoidsModel model) {
         this.model = model;
         view = Optional.empty();
         this.workers = new ArrayList<>();
+        this.start = new Semaphore(0);
 //        this.nCores = model.getBoids().size();
-        this.positionBarrier = new SynchWorkers(nCores);
-        this.viewBarrier = new SynchWorkersView(nCores);
+    }
+
+    public BoidsModel getModel(){
+        return this.model;
     }
 
     public void attachView(BoidsView view) {
         this.view = Optional.of(view);
+    }
+
+    public void startSimulation(int nBoids){
+        this.nBoids = nBoids;
+        try {
+            this.start.release();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            this.start.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void run(){
+        while(true){
+            try {
+                this.start.acquire();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            this.model.createSimulation(this.nBoids);
+            try {
+                this.start.release();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            this.isRunning = true;
+            this.isStopped = false;
+            this.positionBarrier = new SynchWorkers(nCores);
+            this.viewBarrier = new SynchWorkersView(nCores);
+            this.runSimulation();
+
+        }
     }
 
     public void runSimulation() {
@@ -44,13 +90,14 @@ public class ConcurrentBoidsSimulator {
 
         workers.forEach(Thread::start);
 
-        while (true) {
+        while (!isStopped) {
             var t0 = System.currentTimeMillis();
-            var boids = model.getBoids();
 
             try{
                 this.viewBarrier.waitJobsDone();
-            }catch (Exception e ){}
+            }catch (InterruptedException e ){
+                throw new RuntimeException(e);
+            }
 
             if (view.isPresent()) {
                 view.get().update(framerate);
@@ -68,10 +115,56 @@ public class ConcurrentBoidsSimulator {
                 }
             }
 
-            try{
+            try {
                 this.viewBarrier.notifyViewUpdated();
-            }catch (Exception e ){}
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
         }
     }
+
+    public void toggleSuspendResume() {
+        try {
+            if(this.isRunning) {
+                this.viewBarrier.notifySuspension();
+                this.isRunning = false;
+            }else {
+                this.viewBarrier.notifyResume();
+                this.isRunning = true;
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void stopSimulation() {
+        try {
+            this.viewBarrier.waitViewUpdate();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        this.isStopped = true;
+        workers.forEach(Worker::setStopped);
+        workers.clear();
+
+        this.viewBarrier.notifyStop();
+        if (view.isPresent()) {
+            view.get().resetToInitialScreen();
+        }
+
+    }
+
+    public void setSeparationWeight(double value) {
+        this.model.setSeparationWeight(value);
+    }
+
+    public void setAlignmentWeight(double value) {
+        this.model.setAlignmentWeight(value);
+    }
+
+    public void setCohesionWeight(double value) {
+        this.model.setCohesionWeight(value);
+    }
+
 }

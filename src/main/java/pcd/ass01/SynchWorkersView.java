@@ -8,7 +8,9 @@ public class SynchWorkersView {
     private final int nWorkers;
     private int nJobsDone;
     private final Lock mutex;
-    private final Condition updatePosition, updateView;
+    private final Condition updatePosition, updateView, updateState;
+    private boolean isRunning;
+    private boolean onStop;
 
     SynchWorkersView(int nWorkers){
         this.nWorkers = nWorkers;
@@ -16,6 +18,9 @@ public class SynchWorkersView {
         mutex = new ReentrantLock();
         updatePosition = mutex.newCondition();
         updateView = mutex.newCondition();
+        updateState = mutex.newCondition();
+        this.isRunning = true;
+        this.onStop = false;
     }
 
     public Void notifyJobDone() throws InterruptedException{
@@ -40,7 +45,7 @@ public class SynchWorkersView {
     public Void waitJobsDone() throws InterruptedException{
         try{
             mutex.lock();
-            while(nJobsDone != nWorkers){
+            while(nJobsDone != nWorkers || !this.isRunning){
                 updateView.await();
             }
         }finally {
@@ -53,11 +58,62 @@ public class SynchWorkersView {
         try{
             mutex.lock();
             this.nJobsDone = 0;
-            updatePosition.signalAll();
-        }finally {
+            if(this.onStop){
+                updateState.signal();
+                while (this.onStop){
+                    updateView.await();
+                }
+            } else {
+                updatePosition.signalAll();
+            }
+        } finally {
             mutex.unlock();
         }
         return null;
     }
 
+    public Void notifySuspension() throws  InterruptedException{
+        try {
+            mutex.lock();
+            this.isRunning = false;
+        } finally {
+            mutex.unlock();
+        }
+        return null;
+    }
+
+    public Void notifyResume() throws InterruptedException {
+        try {
+            mutex.lock();
+            this.isRunning = true;
+            updateView.signal();
+        } finally {
+            mutex.unlock();
+        }
+        return null;
+    }
+
+    public void waitViewUpdate() throws  InterruptedException {
+        try {
+            mutex.lock();
+            this.onStop = true;
+            while(nJobsDone != 0 && this.isRunning){
+                updateState.await();
+            }
+        } finally {
+            mutex.unlock();
+        }
+    }
+
+    public void notifyStop(){
+        try {
+            mutex.lock();
+            this.onStop = false;
+            if(!this.isRunning)
+                this.isRunning = true;
+            updateView.signal();
+        } finally {
+            mutex.unlock();
+        }
+    }
 }

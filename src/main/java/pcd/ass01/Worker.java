@@ -7,6 +7,7 @@ public class Worker extends Thread{
     private BoidsModel model;
     private SynchWorkersView viewBarrier;
     private SynchWorkers positionBarrier;
+    private boolean isStopped;
 
     Worker(List<Boid> boids, BoidsModel model, SynchWorkersView viewBarrier, SynchWorkers positionBarrier){
         this.boids = boids;
@@ -18,7 +19,7 @@ public class Worker extends Thread{
     @Override
     public void run() {
         super.run();
-        while (true){
+        while (!this.isStopped){
             for (Boid boid : boids) {
                 boid.updateVelocity(model);
             }
@@ -40,5 +41,9 @@ public class Worker extends Thread{
             }
             //System.out.println("View Update wait terminated");
         }
+    }
+
+    public void setStopped(){
+        this.isStopped = true;
     }
 }
