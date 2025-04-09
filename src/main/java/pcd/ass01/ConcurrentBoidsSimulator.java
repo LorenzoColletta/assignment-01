@@ -16,9 +16,10 @@ public class ConcurrentBoidsSimulator {
 
     private int nCores = Runtime.getRuntime().availableProcessors() ;
 
-    private SynchWorkers positionBarrier;
+    private Barrier positionBarrier;
     private SynchWorkersView viewBarrier;
-    private Semaphore start;
+    private Barrier initialHandshackePoint;
+    private Barrier finalHandshakePoint;
 
     private int nBoids;
 
@@ -29,7 +30,8 @@ public class ConcurrentBoidsSimulator {
         this.model = model;
         view = Optional.empty();
         this.workers = new ArrayList<>();
-        this.start = new Semaphore(0);
+        initialHandshackePoint = new Barrier(2);
+        finalHandshakePoint = new Barrier(2);
 //        this.nCores = model.getBoids().size();
     }
 
@@ -44,12 +46,12 @@ public class ConcurrentBoidsSimulator {
     public void startSimulation(int nBoids){
         this.nBoids = nBoids;
         try {
-            this.start.release();
+            this.initialHandshackePoint.notifyJobDone();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
         try {
-            this.start.acquire();
+            this.finalHandshakePoint.notifyJobDone();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -58,7 +60,7 @@ public class ConcurrentBoidsSimulator {
     public void run(){
         while(true){
             try {
-                this.start.acquire();
+                this.initialHandshackePoint.notifyJobDone();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -66,11 +68,11 @@ public class ConcurrentBoidsSimulator {
             this.isRunning = true;
             this.isStopped = false;
             try {
-                this.start.release();
+                this.finalHandshakePoint.notifyJobDone();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            this.positionBarrier = new SynchWorkers(nCores);
+            this.positionBarrier = new Barrier(nCores);
             this.viewBarrier = new SynchWorkersView(nCores);
             this.runSimulation();
 
@@ -132,6 +134,9 @@ public class ConcurrentBoidsSimulator {
             }else {
                 this.viewBarrier.notifyResume();
                 this.isRunning = true;
+            }
+            if (view.isPresent()) {
+                view.get().updateSuspendResumeButtonText(isRunning ? "Resume" : "Suspend");
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

@@ -10,7 +10,8 @@ public class SynchWorkersView {
     private final Lock mutex;
     private final Condition updatePosition, updateView, updateState;
     private boolean isRunning;
-    private boolean onStop;
+    private boolean stopRequest;
+    private boolean stopPermissionGranted;
 
     SynchWorkersView(int nWorkers){
         this.nWorkers = nWorkers;
@@ -20,7 +21,8 @@ public class SynchWorkersView {
         updateView = mutex.newCondition();
         updateState = mutex.newCondition();
         this.isRunning = true;
-        this.onStop = false;
+        this.stopRequest = false;
+        this.stopPermissionGranted = false;
     }
 
     public Void notifyJobDone() throws InterruptedException{
@@ -58,11 +60,13 @@ public class SynchWorkersView {
         try{
             mutex.lock();
             this.nJobsDone = 0;
-            if(this.onStop){
+            if(this.stopRequest){
+                this.stopPermissionGranted = true;
                 updateState.signal();
-                while (this.onStop){
+                while (this.stopRequest){
                     updateView.await();
                 }
+                this.stopPermissionGranted = false;
             } else {
                 updatePosition.signalAll();
             }
@@ -96,8 +100,8 @@ public class SynchWorkersView {
     public void waitViewUpdate() throws  InterruptedException {
         try {
             mutex.lock();
-            this.onStop = true;
-            while(nJobsDone != 0 && this.isRunning){
+            this.stopRequest = true;
+            while(!stopPermissionGranted && this.isRunning){
                 updateState.await();
             }
         } finally {
@@ -108,7 +112,7 @@ public class SynchWorkersView {
     public void notifyStop(){
         try {
             mutex.lock();
-            this.onStop = false;
+            this.stopRequest = false;
             if(!this.isRunning)
                 this.isRunning = true;
             updateView.signal();
