@@ -6,8 +6,23 @@ package pcd.ass01;
  * objects are completely state-less
  *
  */
-public record P2d(double x, double y) {
+public class P2d {
 
+    private double x;
+    private double y;
+
+    P2d(double x, double y){
+        this.x = x;
+        this.y = y;
+    }
+
+    public double x(){
+        return this.x;
+    }
+
+    public double y(){
+        return this.y;
+    }
 
     public P2d sum(V2d v){
         return new P2d(x+v.x(),y+v.y());
