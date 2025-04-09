@@ -27,7 +27,8 @@ public class BoidsSimulation {
     					PERCEPTION_RADIUS,
     					AVOID_RADIUS); 
     	var sim = new ConcurrentBoidsSimulator(model);
-    	var view = new BoidsView(sim, SCREEN_WIDTH, SCREEN_HEIGHT);
+//    	var view = new BoidsView(sim, SCREEN_WIDTH, SCREEN_HEIGHT);
+    	var view = new BasicView(sim);
     	sim.attachView(view);
     	sim.run();
     }

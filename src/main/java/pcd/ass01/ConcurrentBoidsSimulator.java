@@ -9,7 +9,7 @@ import java.util.stream.IntStream;
 public class ConcurrentBoidsSimulator {
 
     private BoidsModel model;
-    private Optional<BoidsView> view;
+    private Optional<View> view;
     private List<Worker> workers;
     private static final int FRAMERATE = 25;
     private int framerate;
@@ -37,7 +37,7 @@ public class ConcurrentBoidsSimulator {
         return this.model;
     }
 
-    public void attachView(BoidsView view) {
+    public void attachView(View view) {
         this.view = Optional.of(view);
     }
 
