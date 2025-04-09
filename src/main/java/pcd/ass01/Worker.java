@@ -6,10 +6,10 @@ public class Worker extends Thread{
     private List<Boid> boids;
     private BoidsModel model;
     private SynchWorkersView viewBarrier;
-    private SynchWorkers positionBarrier;
+    private Barrier positionBarrier;
     private boolean isStopped;
 
-    Worker(List<Boid> boids, BoidsModel model, SynchWorkersView viewBarrier, SynchWorkers positionBarrier){
+    Worker(List<Boid> boids, BoidsModel model, SynchWorkersView viewBarrier, Barrier positionBarrier){
         this.boids = boids;
         this.model = model;
         this.viewBarrier = viewBarrier;
