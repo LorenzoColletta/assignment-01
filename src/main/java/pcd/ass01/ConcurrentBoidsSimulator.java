@@ -63,13 +63,13 @@ public class ConcurrentBoidsSimulator {
                 throw new RuntimeException(e);
             }
             this.model.createSimulation(this.nBoids);
+            this.isRunning = true;
+            this.isStopped = false;
             try {
                 this.start.release();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            this.isRunning = true;
-            this.isStopped = false;
             this.positionBarrier = new SynchWorkers(nCores);
             this.viewBarrier = new SynchWorkersView(nCores);
             this.runSimulation();
