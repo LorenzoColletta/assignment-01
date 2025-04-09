@@ -4,7 +4,7 @@ public class BasicView extends Thread implements View{
 
     private static final int N_BOIDS_SIM_1 = 3;
     private static final int N_BOIDS_SIM_2 = 3;
-    private static final long SLEEP_TIME = 3;
+    private static final long SLEEP_TIME = 3000;
     private static final double PARAMETERS_VALUE = 0.5;
 
     private final ConcurrentBoidsSimulator simulator;
@@ -41,6 +41,7 @@ public class BasicView extends Thread implements View{
         }
         simulator.stopSimulation();
 
+//        System.out.println();
         // second simulation start
         simulator.startSimulation(N_BOIDS_SIM_1);
 

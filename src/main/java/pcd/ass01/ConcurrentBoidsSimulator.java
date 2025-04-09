@@ -18,6 +18,8 @@ public class ConcurrentBoidsSimulator {
 
     private SynchWorkers positionBarrier;
     private SynchWorkersView viewBarrier;
+    private SynchWorkers newBarrier;
+    private SynchWorkers newBarrier2;
     private Semaphore start;
 
     private int nBoids;
@@ -30,6 +32,8 @@ public class ConcurrentBoidsSimulator {
         view = Optional.empty();
         this.workers = new ArrayList<>();
         this.start = new Semaphore(0);
+        newBarrier = new SynchWorkers(2);
+        newBarrier2 = new SynchWorkers(2);
 //        this.nCores = model.getBoids().size();
     }
 
@@ -43,13 +47,19 @@ public class ConcurrentBoidsSimulator {
 
     public void startSimulation(int nBoids){
         this.nBoids = nBoids;
+//        try {
+//            this.start.release();
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//        try {
+//            this.start.acquire();
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
         try {
-            this.start.release();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            this.start.acquire();
+            newBarrier.notifyJobDone();
+            newBarrier2.notifyJobDone();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -57,8 +67,13 @@ public class ConcurrentBoidsSimulator {
 
     public void run(){
         while(true){
+//            try {
+//                this.start.acquire();
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
             try {
-                this.start.acquire();
+                newBarrier.notifyJobDone();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -66,7 +81,8 @@ public class ConcurrentBoidsSimulator {
             this.isRunning = true;
             this.isStopped = false;
             try {
-                this.start.release();
+                newBarrier2.notifyJobDone();
+//                this.start.release();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
