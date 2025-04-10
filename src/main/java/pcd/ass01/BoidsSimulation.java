@@ -2,6 +2,10 @@ package pcd.ass01;
 
 public class BoidsSimulation {
 
+	private static final int N_BOIDS_SIM_1 = 1500;
+	private static final int N_FRAMES = 1500;
+	private static final int N_WORKERS = 1;
+
 	final static int N_BOIDS = 1500;
 
 	final static double SEPARATION_WEIGHT = 1.0;
@@ -28,8 +32,12 @@ public class BoidsSimulation {
     					AVOID_RADIUS); 
     	var sim = new ConcurrentBoidsSimulator(model);
 //    	var view = new BoidsView(sim, SCREEN_WIDTH, SCREEN_HEIGHT);
-    	var view = new BasicView(sim);
-    	sim.attachView(view);
+//    	var view = new BasicView(sim);
+//    	sim.attachView(view);
+		var t0 = System.currentTimeMillis();
+		sim.startSimulation(N_BOIDS_SIM_1, N_WORKERS, N_FRAMES);
     	sim.run();
+		var t1 = System.currentTimeMillis();
+		System.out.println("Elapsed time: " + (t1 - t0));
     }
 }
