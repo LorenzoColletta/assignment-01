@@ -16,11 +16,10 @@ public class ConcurrentBoidsSimulator {
 
     private int nCores = Runtime.getRuntime().availableProcessors() ;
 
-    private SynchWorkers positionBarrier;
+    private Barrier positionBarrier;
     private SynchWorkersView viewBarrier;
-    private SynchWorkers newBarrier;
-    private SynchWorkers newBarrier2;
-    private Semaphore start;
+    private Barrier initialHandshackePoint;
+    private Barrier finalHandshakePoint;
 
     private int nBoids;
 
@@ -31,9 +30,8 @@ public class ConcurrentBoidsSimulator {
         this.model = model;
         view = Optional.empty();
         this.workers = new ArrayList<>();
-        this.start = new Semaphore(0);
-        newBarrier = new SynchWorkers(2);
-        newBarrier2 = new SynchWorkers(2);
+        initialHandshackePoint = new Barrier(2);
+        finalHandshakePoint = new Barrier(2);
 //        this.nCores = model.getBoids().size();
     }
 
@@ -47,19 +45,13 @@ public class ConcurrentBoidsSimulator {
 
     public void startSimulation(int nBoids){
         this.nBoids = nBoids;
-//        try {
-//            this.start.release();
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//        try {
-//            this.start.acquire();
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
         try {
-            newBarrier.notifyJobDone();
-            newBarrier2.notifyJobDone();
+            this.initialHandshackePoint.notifyJobDone();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            this.finalHandshakePoint.notifyJobDone();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -67,13 +59,8 @@ public class ConcurrentBoidsSimulator {
 
     public void run(){
         while(true){
-//            try {
-//                this.start.acquire();
-//            } catch (InterruptedException e) {
-//                throw new RuntimeException(e);
-//            }
             try {
-                newBarrier.notifyJobDone();
+                this.initialHandshackePoint.notifyJobDone();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -81,12 +68,11 @@ public class ConcurrentBoidsSimulator {
             this.isRunning = true;
             this.isStopped = false;
             try {
-                newBarrier2.notifyJobDone();
-//                this.start.release();
+                this.finalHandshakePoint.notifyJobDone();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            this.positionBarrier = new SynchWorkers(nCores);
+            this.positionBarrier = new Barrier(nCores);
             this.viewBarrier = new SynchWorkersView(nCores);
             this.runSimulation();
 
@@ -148,6 +134,9 @@ public class ConcurrentBoidsSimulator {
             }else {
                 this.viewBarrier.notifyResume();
                 this.isRunning = true;
+            }
+            if (view.isPresent()) {
+                view.get().updateSuspendResumeButtonText(isRunning ? "Resume" : "Suspend");
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

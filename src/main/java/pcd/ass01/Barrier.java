@@ -4,14 +4,14 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class SynchWorkers {
+public class Barrier {
 
     private final int nWorkers;
     private int nJobsDone;
     private final Lock mutex;
     private final Condition cond;
 
-    SynchWorkers(int nWorkers){
+    Barrier(int nWorkers){
         this.nWorkers = nWorkers;
         this.nJobsDone = 0;
         mutex = new ReentrantLock();
